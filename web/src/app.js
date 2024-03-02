@@ -20,7 +20,7 @@ const redirectUri = 'http://localhost:3000/callback';
 const app = express()
 app.use(cookieParser());
 app.use(express.static(staticDir));
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   req.cookies['account'] == 'true'
     ? res.sendFile(staticDir + '/home.html')
     : res.sendFile(staticDir + '/login.html');
@@ -42,7 +42,7 @@ function generateRandomString(length) {
   return randomString;
 }
 
-app.get('/login', function(req, res) {
+app.get('/login', function (req, res) {
   const state = generateRandomString(16);
   const scope = 'user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private';
 
@@ -59,7 +59,7 @@ app.get('/login', function(req, res) {
 
 //#region ACCESS TOKEN
 app.get('/callback', (req, res) => {
-  res.cookie('account', 'true', {maxAge: 360000});
+  res.cookie('account', 'true', { maxAge: 360000 });
   const code = req.query.code;
   const state = req.query.state;
 
@@ -82,7 +82,7 @@ app.get('/callback', (req, res) => {
 
   axios(authOptions)
     .then(response => {
-      fs.writeFile(commonDir+'/spotify_access_token', response.data.access_token, err => {
+      fs.writeFile(commonDir + '/spotify_access_token', response.data.access_token, err => {
         if (err) {
           console.error(err);
         } else {

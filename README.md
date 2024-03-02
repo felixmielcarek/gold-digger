@@ -20,7 +20,7 @@ These 2 values can be found in the Spotify developer dashboard as described in t
 Start the web application:
 
 ```shell
-node web/app.js
+node --env-file=common/.env web/src/app.js
 ```
 
 Start your browser, go to url: ```localhost:3000``` and login with your Spotify account to recover your access token.
