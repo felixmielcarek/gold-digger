@@ -4,11 +4,15 @@ on: [push]
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./script
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '21'
-      - run: cd script
-      - run: npm install
-      - run: npm test
+      - name: Install Node modules
+        run: npm install
+      - name: Run tests
+        run: npm test
