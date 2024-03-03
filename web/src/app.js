@@ -14,6 +14,7 @@ const port = 3000
 const clientId = process.env.CLIENT_ID;
 const clientSecret = process.env.CLIENT_SECRET;
 const redirectUri = 'http://localhost:3000/callback';
+const scope = 'user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private user-library-read';
 //#endregion
 
 //#region APP INIT
@@ -44,7 +45,6 @@ function generateRandomString(length) {
 
 app.get('/login', function (req, res) {
   const state = generateRandomString(16);
-  const scope = 'user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private';
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     queryString.stringify({

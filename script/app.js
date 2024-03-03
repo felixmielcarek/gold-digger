@@ -1,7 +1,3 @@
-//#region REQUIRE
-const gd = require('./gold-digger.js')
-//#endregion
+const gd = require("./gold-digger");
 
-//#region MAIN
-gd.createsGDPlaylist();
-//#endregion 
+gd.main();
