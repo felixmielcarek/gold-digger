@@ -7,10 +7,11 @@ const path = require('path');
 //#region VARIABLES
 const commonDir = path.join(__dirname, '../common');
 const GDPlaylistName = "Gold Digger";
+const spotifyRequestsLimit = 10;
 var GDPlaylistId;
-var playlistsIds = {};
-var albumIds = [];
+var playlistsIds = [];
 var trackIds = [];
+var artistIds = [];
 
 var accessToken;
 try { accessToken = fs.readFileSync(commonDir + '/spotify_access_token', 'utf8') }
@@ -18,7 +19,7 @@ catch (err) { console.error(err) }
 //#endregion
 
 //#region CREATE GD PLAYLIST
-async function addPlaylistsToDictionary(dictionary, href = `https://api.spotify.com/v1/me/playlists?limit=10&offset=0`) {
+async function addPlaylistsToDictionary(dictionary, href = `https://api.spotify.com/v1/me/playlists?limit=${spotifyRequestsLimit}&offset=0`) {
     try {
         const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } })
         response.data.items.forEach(element => dictionary[element.id] = element.name);
@@ -69,49 +70,61 @@ async function createsGDPlaylist() {
     await addPlaylistsToDictionary(dictionary);
     if (!GDPlaylistExists(dictionary)) await createPlaylist();
 
-    //to avoid recovering a second time the playlist when getting library
+    //to avoid recovering a second time playlists when getting library
     playlistsIds = Object.keys(dictionary).filter((id) => id !== GDPlaylistId);
 }
 //#endregion
 
 //#region GET LIBRARY
-function getPlaylists() {
-    console.log(playlistsIds);
+function addArtistToList(id) {
+    if (!artistIds.includes(id) && id != null) artistIds.push(id);
 }
-
-async function addAlbumsToList(href = `https://api.spotify.com/v1/me/albums?limit=10&offset=0`) {
-    try {
-        const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } })
-        response.data.items.forEach(element => albumIds.push(element.album.id));
-        if (response.data.next) await addAlbumsToList(response.data.next)
-    } catch (error) { console.log(error.response.status) }
-}
-
-async function getAlbums() {
-    await addAlbumsToList();
-    console.log(albumIds);
-}
-
-async function addTracksToList(href = `https://api.spotify.com/v1/me/tracks?limit=10&offset=0`) {
+async function addPlaylistsArtistsToList(href) {
     try {
         const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } });
-        response.data.items.forEach(element => trackIds.push(element.track.id));
-        if (response.data.next) await addTracksToList(response.data.next)
+        response.data.items.forEach(element => { element.track.artists.forEach(artist => { addArtistToList(artist.id) }) })
+        if (response.data.next) await addPlaylistsArtistsToList(response.data.next);
+    }
+    catch (error) { console.log(error.response.status) }
+}
+
+async function getPlaylistsArtists() {
+    for (const playlist of playlistsIds)
+        await addPlaylistsArtistsToList(`https://api.spotify.com/v1/playlists/${playlist}/tracks?limit=${spotifyRequestsLimit}&offset=0&fields=items(track(artists(id)))`)
+}
+
+async function addAlbumsArtistsToList(href = `https://api.spotify.com/v1/me/albums?limit=${spotifyRequestsLimit}&offset=0`) {
+    try {
+        const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } })
+        response.data.items.forEach(element => { element.album.tracks.items.forEach(track => track.artists.forEach(artist => addArtistToList(artist.id))) });
+        if (response.data.next) await addAlbumsArtistsToList(response.data.next)
     } catch (error) { console.log(error.response.status) }
 }
 
-async function getTracks() {
-    await addTracksToList();
-    console.log(trackIds);
+async function getAlbumsArtists() {
+    await addAlbumsArtistsToList();
+}
+
+async function addTracksArtistsToList(href = `https://api.spotify.com/v1/me/tracks?limit=${spotifyRequestsLimit}&offset=0`) {
+    try {
+        const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } });
+        response.data.items.forEach(element => element.track.artists.forEach(artist => addArtistToList(artist.id)));
+        if (response.data.next) await addTracksArtistsToList(response.data.next)
+    } catch (error) { console.log(error.response.status) }
+}
+
+async function getTracksArtists() {
+    await addTracksArtistsToList();
 }
 //#endregion
 
 //#region MAIN
 async function main() {
     await createsGDPlaylist();
-    getPlaylists();
-    getAlbums();
-    getTracks();
+    await getPlaylistsArtists();
+    await getAlbumsArtists();
+    await getTracksArtists();
+    console.log(artistIds);
 }
 //#endregion
 
