@@ -139,9 +139,46 @@ async function getTracks() {
 }
 //#endregion
 
+//#region ADD TRACKS
+function transformArray(originalArray, x) {
+    var transformedArrays = [];
+    var tempArray = [];
+    originalArray.forEach(function (element, index) {
+        tempArray.push("spotify:track:" + element);
+        if ((index + 1) % x === 0 || index === originalArray.length - 1) {
+            transformedArrays.push(tempArray);
+            tempArray = [];
+        }
+    });
+    return transformedArrays;
+}
+
+async function addTracksToPlaylist() {
+    var x = 100;
+    var urisArrays = transformArray(trackIds, x);
+
+    for (const uris of urisArrays) {
+        const options = {
+            method: 'POST',
+            url: `https://api.spotify.com/v1/playlists/${GDPlaylistId}/tracks`,
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json',
+            },
+            data: JSON.stringify({
+                'uris': uris
+            })
+        };
+        try { await axios(options) }
+        catch (error) { webError("Add tracks to playlist", error) }
+    }
+}
+//#endregion
+
 //#region LOGS
 function webError(step, error) {
-    console.log(`[KO] ${step} : ${error.response.data}`);
+    console.log(`[KO] ${step} : ${error}`);
+    throw new Error();
 }
 
 function stepSuccess(step) {
@@ -150,12 +187,12 @@ function stepSuccess(step) {
 
 function stepBeggining(step) {
     const sptor = "=".repeat(5);
-    console.log(`${sptor} ${step} ${sptor}`);
+    console.log(`\n${sptor} ${step} ${sptor}`);
 }
 
 async function stepExecution(stepName, stepFunc) {
     stepBeggining(stepName);
-    await stepFunc();
+    await stepFunc()
     stepSuccess(stepName);
 }
 //#endregion
@@ -169,15 +206,13 @@ async function main() {
     const step5 = "Artists tracks recovery";
     const step6 = "Tracks addition";
     try {
-        stepExecution(step1, createsGDPlaylist);
-        stepExecution(step2, getPlaylistsArtists);
-        stepExecution(step3, getAlbumsArtists);
-        stepExecution(step4, getTracksArtists);
-        stepExecution(step5, getTracks);
-        //stepExecution(step6);
-    } catch (error) {
-        console.log("An error occured");
-    }
+        await stepExecution(step1, createsGDPlaylist);
+        await stepExecution(step2, getPlaylistsArtists);
+        await stepExecution(step3, getAlbumsArtists);
+        await stepExecution(step4, getTracksArtists);
+        await stepExecution(step5, getTracks);
+        await stepExecution(step6, addTracksToPlaylist);
+    } catch (error) { }
 }
 //#endregion
 
