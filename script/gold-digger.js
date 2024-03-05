@@ -13,8 +13,8 @@ const currentDate = `${date.getFullYear()}-${String(date.getMonth()).padStart(2,
 
 var GDPlaylistId;
 var playlistsIds = [];
-var trackIds = [];
 var artistIds = [];
+var trackIds = [];
 
 var accessToken;
 try { accessToken = fs.readFileSync(commonDir + '/spotify_access_token', 'utf8') }
@@ -114,43 +114,39 @@ async function getTracksArtists(href = `https://api.spotify.com/v1/me/tracks?lim
 
 //#endregion
 
-//#region GET SONGS
-async function addPlaylistsArtistsToList(href) {
-    try {
-        const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } });
-        response.data.items.forEach(element => { element.track.artists.forEach(artist => { addArtistToList(artist.id) }) })
-        if (response.data.next) await addPlaylistsArtistsToList(response.data.next);
-    } catch (error) { console.log(error.response.status) }
+//#region GET TRACKS
+function addTracksToList(id) {
+    if (!trackIds.includes(id) && id != null) trackIds.push(id);
 }
 
-async function getArtistSongs(href) {
+async function getArtistTracks(href) {
     try {
-        const response = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } });
-        response.data.items.forEach(element => {
-            //if (element.release_date === currentDate) {
-            if (element.release_date === "2024-03-01") {
-                console.log(element.name);
-                console.log(element.artists[0].name);
+        const artistResponse = await axios.get(href, { headers: { Authorization: 'Bearer ' + accessToken } });
+        for (const album of artistResponse.data.items) {
+            if (album.release_date === currentDate) {
+                const albumResponse = await axios.get(`https://api.spotify.com/v1/albums/${album.id}/tracks?limit=${spotifyRequestsLimit}&offset=0`)
+                albumResponse.data.items.forEach(track => addTracksToList(track.id));
             }
-        });
+        }
     } catch (error) { console.log(error.response.status) }
 }
 
-async function getSongs() {
+async function getTracks() {
     for (const artist of artistIds)
-        await getArtistSongs(`https://api.spotify.com/v1/artists/${artist}/albums?limit=${spotifyRequestsLimit}&offset=0`)
+        await getArtistTracks(`https://api.spotify.com/v1/artists/${artist}/albums?limit=${spotifyRequestsLimit}&offset=0`);
+    console.log(trackIds);
 }
 //#endregion
 
 //#region MAIN
 async function main() {
-    /*await createsGDPlaylist();
+    await createsGDPlaylist();
 
     await getPlaylistsArtists();
     await getAlbumsArtists();
     await getTracksArtists();
 
-    await getSongs();*/
+    await getTracks();
 }
 //#endregion
 
